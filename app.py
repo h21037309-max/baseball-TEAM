@@ -6,7 +6,7 @@ import uuid
 
 st.set_page_config(layout="wide")
 
-st.title("⚾ 打擊數據")
+st.title("⚾ 打擊數據系統 V10.5")
 
 DATA_FILE="data.csv"
 USER_FILE="users.csv"
@@ -31,7 +31,9 @@ if not os.path.exists(USER_FILE):
 
 }]).to_csv(USER_FILE,index=False)
 
+
 user_df=pd.read_csv(USER_FILE)
+
 
 
 # ======================
@@ -40,14 +42,21 @@ user_df=pd.read_csv(USER_FILE)
 
 mode=st.sidebar.radio("帳號",["登入","註冊"])
 
+
+# ========= 註冊 =========
+
 if mode=="註冊":
 
     st.header("建立帳號")
 
     acc=st.text_input("帳號")
+
     pw=st.text_input("密碼",type="password")
+
     real=st.text_input("姓名")
+
     team=st.text_input("球隊")
+
     num=st.number_input("背號",0)
 
     if st.button("建立帳號"):
@@ -143,7 +152,7 @@ df=df.fillna(0)
 
 
 # ======================
-# ⭐ ADMIN 球員管理中心
+# ADMIN 球員管理中心
 # ======================
 
 if IS_ADMIN:
@@ -151,8 +160,11 @@ if IS_ADMIN:
     st.header("🏆 球員管理中心")
 
     select_player=st.selectbox(
-    "選擇查看球員",
+
+    "選擇球員",
+
     user_df["姓名"]
+
     )
 
     player_df=df[df["姓名"]==select_player]
@@ -164,7 +176,7 @@ else:
 
 
 # ======================
-# ⭐ 個人累積統計（最上）
+# 個人累積
 # ======================
 
 st.header("📊 個人累積統計")
@@ -178,8 +190,11 @@ else:
     total=player_df.sum(numeric_only=True)
 
     AB=total["打數"]
+
     H=total["安打"]
+
     BB=total["BB"]
+
     SF=total["SF"]
 
     TB=(
@@ -211,7 +226,7 @@ else:
 
 
 # ======================
-# ⭐ 新增紀錄
+# 新增紀錄
 # ======================
 
 st.header("新增比賽紀錄")
@@ -220,11 +235,11 @@ if IS_ADMIN:
 
     info=user_df[user_df["姓名"]==select_player].iloc[0]
 
+    name=select_player
+
     team_default=info["球隊"]
 
     number_default=int(info["背號"])
-
-    name=select_player
 
 
 
@@ -315,7 +330,7 @@ if st.button("新增紀錄"):
 
 
 # ======================
-# ⭐ 單場紀錄
+# 單場紀錄
 # ======================
 
 st.header("📅 單場比賽紀錄")
@@ -334,24 +349,12 @@ vs {row['對戰球隊']} ｜ {row['投手']}
 
 PA {int(row['打席'])} ｜ AB {int(row['打數'])} ｜ H {int(row['安打'])}
 
-RBI {int(row['打點'])} ｜ R {int(row['得分'])}
-
-1B {int(row['1B'])} ｜ 2B {int(row['2B'])} ｜ 3B {int(row['3B'])} ｜ HR {int(row['HR'])}
-
-BB {int(row['BB'])} ｜ SF {int(row['SF'])} ｜ SH {int(row['SH'])} ｜ SB {int(row['SB'])}
-
 ---
 """)
 
     with colB:
 
         if st.button("❌",key=row["紀錄ID"]):
-
-            if not IS_ADMIN and row["姓名"]!=name:
-
-                st.warning("只能刪自己的")
-
-                st.stop()
 
             df=df[df["紀錄ID"]!=row["紀錄ID"]]
 
@@ -362,38 +365,57 @@ BB {int(row['BB'])} ｜ SF {int(row['SF'])} ｜ SH {int(row['SH'])} ｜ SB {int(
 
 
 # ======================
-# ⭐ ADMIN排行榜
+# ⭐ ADMIN 帳號管理（新增）
 # ======================
 
-if IS_ADMIN and not df.empty:
+if IS_ADMIN:
 
     st.divider()
 
-    st.header("🏆 全隊排行榜")
+    st.header("👤 帳號管理")
 
-    summary=df.groupby(
-["球隊","背號","姓名"],
-as_index=False).sum(numeric_only=True)
+    st.dataframe(
 
-    TB=(
+    user_df[["帳號","姓名","球隊","背號"]],
 
-    summary["1B"]
-    +summary["2B"]*2
-    +summary["3B"]*3
-    +summary["HR"]*4
+    use_container_width=True
 
     )
 
-    summary["AVG"]=(summary["安打"]/summary["打數"]).round(3).fillna(0)
+    delete_acc=st.selectbox(
 
-    summary["OBP"]=(
-(summary["安打"]+summary["BB"])/
-(summary["打數"]+summary["BB"]+summary["SF"])
-).round(3).fillna(0)
+    "選擇刪除帳號",
 
-    summary["SLG"]=(TB/summary["打數"]).round(3).fillna(0)
+    user_df["帳號"]
 
-    summary["OPS"]=(summary["OBP"]+summary["SLG"]).round(3)
+    )
 
-    st.dataframe(summary,use_container_width=True)
+    if st.button("❌ 刪除帳號"):
 
+        if delete_acc=="admin":
+
+            st.warning("不能刪admin")
+
+        else:
+
+            delete_name=user_df[
+
+            user_df["帳號"]==delete_acc
+
+            ].iloc[0]["姓名"]
+
+            # 刪 users
+            user_df=user_df[
+            user_df["帳號"]!=delete_acc
+            ]
+
+            user_df.to_csv(USER_FILE,index=False)
+
+            # 刪所有比賽紀錄
+            df=df[df["姓名"]!=delete_name]
+
+            df.to_csv(DATA_FILE,index=False)
+
+            st.success(f"{delete_name}帳號與全部紀錄已刪除")
+
+            st.rerun()
