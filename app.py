@@ -6,7 +6,7 @@ import uuid
 
 st.set_page_config(layout="wide")
 
-st.title("⚾ 打擊數據系統 V11")
+st.title("⚾打擊數據系統")
 
 DATA_FILE="data.csv"
 USER_FILE="users.csv"
@@ -456,3 +456,4 @@ if IS_ADMIN:
             st.success("帳號與全部紀錄已刪除")
 
             st.rerun()
+
