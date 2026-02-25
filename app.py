@@ -6,7 +6,7 @@ import uuid
 
 st.set_page_config(layout="wide")
 
-st.title("⚾ 打擊數據系統 V8")
+st.title("⚾ 打擊數據系統 V9")
 
 DATA_FILE="data.csv"
 USER_FILE="users.csv"
@@ -21,7 +21,9 @@ ADMINS=[
 ]
 
 
-# ========= users =========
+# ======================
+# users 初始化
+# ======================
 
 if not os.path.exists(USER_FILE):
 
@@ -40,7 +42,9 @@ user_df=pd.read_csv(USER_FILE)
 
 
 
-# ========= 登入 =========
+# ======================
+# 登入 / 註冊
+# ======================
 
 mode=st.sidebar.radio("帳號",["登入","註冊"])
 
@@ -113,7 +117,9 @@ IS_ADMIN=name in ADMINS
 
 
 
-# ========= CSV =========
+# ======================
+# CSV
+# ======================
 
 columns=[
 
@@ -153,7 +159,7 @@ df=df.fillna(0)
 
 
 # ======================
-# ⭐ ADMIN 球員排行榜
+# ADMIN 全隊排行榜
 # ======================
 
 if IS_ADMIN and not df.empty:
@@ -161,49 +167,32 @@ if IS_ADMIN and not df.empty:
     st.header("🏆 全隊累積排行榜")
 
     summary=df.groupby(
-
 ["球隊","背號","姓名"],
-as_index=False
-
-).sum(numeric_only=True)
-
+as_index=False).sum(numeric_only=True)
 
     TB=(
-
 summary["1B"]
 +summary["2B"]*2
 +summary["3B"]*3
-+summary["HR"]*4
++summary["HR"]*4)
 
-)
-
-    summary["打擊率"]=(
-
-summary["安打"]/summary["打數"]
-
-).round(3).fillna(0)
-
+    summary["打擊率"]=(summary["安打"]/summary["打數"]).round(3).fillna(0)
 
     summary["上壘率"]=(
-
 (summary["安打"]+summary["BB"])/
 (summary["打數"]+summary["BB"]+summary["SF"])
-
 ).round(3).fillna(0)
-
 
     summary["長打率"]=(TB/summary["打數"]).round(3).fillna(0)
 
-    summary["OPS"]=(
-summary["上壘率"]+summary["長打率"]
-).round(3)
+    summary["OPS"]=(summary["上壘率"]+summary["長打率"]).round(3)
 
     st.dataframe(summary,use_container_width=True)
 
 
 
 # ======================
-# ⭐ ADMIN 可選球員新增
+# 新增紀錄
 # ======================
 
 st.header("新增比賽紀錄")
@@ -211,23 +200,16 @@ st.header("新增比賽紀錄")
 
 if IS_ADMIN:
 
-    player_select=st.selectbox(
+    player_select=st.selectbox("選擇球員",user_df["姓名"])
 
-"選擇球員",
-
-user_df["姓名"]
-
-)
-
-    player_info=user_df[
-user_df["姓名"]==player_select
-].iloc[0]
-
-    team_default=player_info["球隊"]
-
-    number_default=int(player_info["背號"])
+    info=user_df[user_df["姓名"]==player_select].iloc[0]
 
     name=player_select
+
+    team_default=info["球隊"]
+
+    number_default=int(info["背號"])
+
 
 
 c1,c2,c3=st.columns(3)
@@ -302,19 +284,13 @@ if st.button("新增紀錄"):
 "安打":H,
 
 "1B":single,
-
 "2B":double,
-
 "3B":triple,
-
 "HR":HR,
 
 "BB":BB,
-
 "SF":SF,
-
 "SH":SH,
-
 "SB":SB
 
 }])
@@ -330,7 +306,58 @@ if st.button("新增紀錄"):
 
 
 # ======================
-# ⭐ 單場紀錄
+# ⭐ 個人累積統計（回來了）
+# ======================
+
+st.header("📊 個人累積統計")
+
+player_df=df if IS_ADMIN else df[df["姓名"]==name]
+
+
+if not player_df.empty:
+
+    total=player_df.sum(numeric_only=True)
+
+    AB=total["打數"]
+
+    H=total["安打"]
+
+    BB=total["BB"]
+
+    SF=total["SF"]
+
+    TB=(
+total["1B"]
++total["2B"]*2
++total["3B"]*3
++total["HR"]*4)
+
+    AVG=round(H/AB,3) if AB>0 else 0
+
+    OBP=round((H+BB)/(AB+BB+SF),3) if (AB+BB+SF)>0 else 0
+
+    SLG=round(TB/AB,3) if AB>0 else 0
+
+    OPS=round(OBP+SLG,3)
+
+    c1,c2,c3,c4,c5,c6=st.columns(6)
+
+    c1.metric("打席",int(total["打席"]))
+
+    c2.metric("安打",int(H))
+
+    c3.metric("打擊率",AVG)
+
+    c4.metric("上壘率",OBP)
+
+    c5.metric("長打率",SLG)
+
+    c6.metric("OPS",OPS)
+
+
+
+# ======================
+# 單場紀錄
 # ======================
 
 st.header("📅 單場比賽紀錄")
