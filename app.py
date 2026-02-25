@@ -134,55 +134,61 @@ if IS_ADMIN:
     st.header("👤 帳號管理")
 
     st.dataframe(
-
-user_df[["帳號","姓名","球隊","背號"]],
-
-use_container_width=True
-
-)
+        user_df[["帳號","姓名","球隊","背號"]],
+        use_container_width=True
+    )
 
     delete_acc=st.selectbox(
-
-"刪除帳號",
-
-user_df["帳號"]
-
-)
+        "刪除帳號",
+        user_df["帳號"]
+    )
 
     if st.button("❌ 刪除帳號"):
 
         if delete_acc=="admin":
 
-            st.warning("不能刪admin")
+            st.warning("不能刪 admin")
 
         else:
 
-            delete_name=user_df[
-            user_df["帳號"]==delete_acc
-            ].iloc[0]["姓名"]
+            # ⭐ 找姓名
+            delete_name=str(
+                user_df[
+                user_df["帳號"]==delete_acc
+                ].iloc[0]["姓名"]
+            ).strip()
 
-            # 刪users
+            # ===== 刪 users =====
+
             user_df=user_df[
-            user_df["帳號"]!=delete_acc
+                user_df["帳號"]!=delete_acc
             ]
 
-            user_df.to_csv(USER_FILE,index=False)
+            user_df.to_csv(
+                USER_FILE,
+                index=False
+            )
 
-            # 刪data
+            # ===== 刪 data.csv =====
+
             if os.path.exists(DATA_FILE):
 
                 data_df=pd.read_csv(DATA_FILE)
 
+                # ⭐ 刪整個人所有紀錄
                 data_df=data_df[
-                data_df["姓名"]!=delete_name
+                data_df["姓名"].astype(str).str.strip()
+                != delete_name
                 ]
 
-                data_df.to_csv(DATA_FILE,index=False)
+                data_df.to_csv(
+                    DATA_FILE,
+                    index=False
+                )
 
-            st.success("帳號與資料已刪除")
+            st.success(f"✅ {delete_name} 帳號與全部比賽紀錄已刪除")
 
             st.rerun()
-
 
 
 # ======================
