@@ -6,7 +6,7 @@ import uuid
 
 st.set_page_config(layout="wide")
 
-st.title("⚾ 打擊數據系統 V7")
+st.title("⚾ 打擊數據系統")
 
 DATA_FILE="data.csv"
 USER_FILE="users.csv"
@@ -487,3 +487,4 @@ summary=stat_df.groupby(
 as_index=False).sum(numeric_only=True)
 
 st.dataframe(summary,use_container_width=True)
+
