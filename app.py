@@ -32,7 +32,13 @@ if not os.path.exists(USER_FILE):
 "密碼":"admin123",
 "姓名":"洪仲平",
 "球隊":"ADMIN",
-"背號":0
+"背號":0,
+
+"帳號":"admin",
+"密碼":"admin1234",
+"姓名":"楊振銓",
+"球隊":"ADMIN",
+"背號":1
 
 }]).to_csv(USER_FILE,index=False)
 
