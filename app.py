@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import os
-from io import BytesIO
 
 st.set_page_config(layout="wide")
 
@@ -31,11 +30,13 @@ if not os.path.exists(USER_FILE):
 user_df=pd.read_csv(USER_FILE)
 
 
+
 # ======================
 # 登入 / 註冊
 # ======================
 
 mode=st.sidebar.radio("帳號",["登入","註冊"])
+
 
 
 # ========= 註冊 =========
@@ -112,6 +113,55 @@ ADMIN="洪仲平"
 
 
 # ======================
+# ⭐ ADMIN 帳號管理
+# ======================
+
+if name==ADMIN:
+
+    st.header("👤 帳號管理")
+
+    st.dataframe(
+
+        user_df[["帳號","姓名","球隊","背號"]],
+
+        use_container_width=True
+
+    )
+
+    st.subheader("刪除帳號")
+
+    delete_acc=st.selectbox(
+
+        "選擇刪除帳號",
+
+        user_df["帳號"]
+
+    )
+
+    if st.button("❌ 刪除帳號"):
+
+        if delete_acc=="admin":
+
+            st.warning("不能刪除admin")
+
+        else:
+
+            user_df=user_df[
+            user_df["帳號"]!=delete_acc
+            ]
+
+            user_df.to_csv(
+            USER_FILE,
+            index=False
+            )
+
+            st.success("帳號已刪除")
+
+            st.rerun()
+
+
+
+# ======================
 # 欄位
 # ======================
 
@@ -128,6 +178,7 @@ columns=[
 "BB","SF","SH","SB"
 
 ]
+
 
 
 # ======================
@@ -180,11 +231,18 @@ axis=1)
 
 lambda r:round(
 
-((r["安打"]+r["BB"])/(r["打數"]+r["BB"]+r["SF"] if (r["打數"]+r["BB"]+r["SF"])>0 else 1))
+((r["安打"]+r["BB"])/
+(r["打數"]+r["BB"]+r["SF"]
+if (r["打數"]+r["BB"]+r["SF"])>0 else 1))
 
 +
 
-((r["1B"]+r["2B"]*2+r["3B"]*3+r["HR"]*4)/(r["打數"] if r["打數"]>0 else 1))
+((r["1B"]
++r["2B"]*2
++r["3B"]*3
++r["HR"]*4)
+
+/(r["打數"] if r["打數"]>0 else 1))
 
 ,3)
 
@@ -299,10 +357,10 @@ if not player_df.empty:
     total=player_df.sum(numeric_only=True)
 
     TB=(
-total["1B"]+
-total["2B"]*2+
-total["3B"]*3+
-total["HR"]*4)
+total["1B"]
++total["2B"]*2
++total["3B"]*3
++total["HR"]*4)
 
     AB_total=total["打數"]
 
@@ -372,39 +430,61 @@ BB {int(row['BB'])} ｜ SF {int(row['SF'])} ｜ SH {int(row['SH'])} ｜ SB {int(
 
 
 # ======================
-# ⭐ 一鍵儲存Excel
+# Excel風格總統計（截圖神器）
 # ======================
 
 st.divider()
 
+st.header("📊 總數據統計表")
+
 if not df.empty:
 
-    st.subheader("💾 資料備份")
+    stat_df=df if name==ADMIN else df[df["姓名"]==name]
 
-    try:
+    summary=stat_df.groupby(
+["球隊","背號","姓名"],
+as_index=False
+).sum(numeric_only=True)
 
-        buffer=BytesIO()
+    TB=(summary["1B"]
++summary["2B"]*2
++summary["3B"]*3
++summary["HR"]*4)
 
-        df.to_excel(
-            buffer,
-            index=False,
-            engine="openpyxl"
-        )
+    summary["AVG"]=summary.apply(
+lambda r:round(
+r["安打"]/r["打數"],3)
+if r["打數"]>0 else 0,
+axis=1)
 
-        buffer.seek(0)
+    summary["OPS"]=summary.apply(
 
-        st.download_button(
+lambda r:round(
 
-"⬇️ 儲存Excel備份",
+((r["安打"]+r["BB"])/
+(r["打數"]+r["BB"]+r["SF"]
+if (r["打數"]+r["BB"]+r["SF"])>0 else 1))
 
-buffer,
++
 
-file_name=f"baseball_backup_{datetime.now().strftime('%Y%m%d')}.xlsx",
+((r["1B"]
++r["2B"]*2
++r["3B"]*3
++r["HR"]*4)
 
-mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+/(r["打數"] if r["打數"]>0 else 1))
 
+,3)
+
+,axis=1)
+
+    st.dataframe(
+
+summary[
+["球隊","背號","姓名",
+"打席","打數","安打",
+"AVG","OPS"]
+].sort_values("OPS",ascending=False),
+
+use_container_width=True
 )
-
-    except:
-
-        st.warning("requirements.txt 加入 openpyxl")
