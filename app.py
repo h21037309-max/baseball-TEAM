@@ -21,7 +21,7 @@ if not os.path.exists(USER_FILE):
 
 "帳號":"admin",
 "密碼":"admin123",
-"姓名":"楊振銓",
+"姓名":"洪仲平",
 "球隊":"ADMIN",
 "背號":0
 
@@ -30,13 +30,11 @@ if not os.path.exists(USER_FILE):
 user_df=pd.read_csv(USER_FILE)
 
 
-
 # ======================
 # 登入 / 註冊
 # ======================
 
 mode=st.sidebar.radio("帳號",["登入","註冊"])
-
 
 
 # ========= 註冊 =========
@@ -102,18 +100,17 @@ if login.empty:
 
     st.stop()
 
-name=login.iloc[0]["姓名"]
+name=str(login.iloc[0]["姓名"]).strip()
 
 team_default=login.iloc[0]["球隊"]
 
 number_default=login.iloc[0]["背號"]
 
-ADMIN="楊振銓"
-
+ADMIN="洪仲平"
 
 
 # ======================
-# ⭐ ADMIN 帳號管理
+# ADMIN 帳號管理
 # ======================
 
 if name==ADMIN:
@@ -122,40 +119,38 @@ if name==ADMIN:
 
     st.dataframe(
 
-        user_df[["帳號","姓名","球隊","背號"]],
+user_df[["帳號","姓名","球隊","背號"]],
 
-        use_container_width=True
+use_container_width=True
 
-    )
-
-    st.subheader("刪除帳號")
+)
 
     delete_acc=st.selectbox(
 
-        "選擇刪除帳號",
+"刪除帳號",
 
-        user_df["帳號"]
+user_df["帳號"]
 
-    )
+)
 
     if st.button("❌ 刪除帳號"):
 
         if delete_acc=="admin":
 
-            st.warning("不能刪除admin")
+            st.warning("不能刪admin")
 
         else:
 
             user_df=user_df[
-            user_df["帳號"]!=delete_acc
-            ]
+user_df["帳號"]!=delete_acc
+]
 
             user_df.to_csv(
-            USER_FILE,
-            index=False
-            )
+USER_FILE,
+index=False
+)
 
-            st.success("帳號已刪除")
+            st.success("已刪除")
 
             st.rerun()
 
@@ -178,7 +173,6 @@ columns=[
 "BB","SF","SH","SB"
 
 ]
-
 
 
 # ======================
@@ -242,7 +236,8 @@ if (r["打數"]+r["BB"]+r["SF"])>0 else 1))
 +r["3B"]*3
 +r["HR"]*4)
 
-/(r["打數"] if r["打數"]>0 else 1))
+/
+(r["打數"] if r["打數"]>0 else 1))
 
 ,3)
 
@@ -250,16 +245,17 @@ if (r["打數"]+r["BB"]+r["SF"])>0 else 1))
 
     st.dataframe(
 
-summary[
-["球隊","背號","姓名","打席","打數","安打","AVG","OPS"]
-].sort_values("OPS",ascending=False),
+summary.sort_values(
+"OPS",
+ascending=False
+),
 
 use_container_width=True)
 
 
 
 # ======================
-# 新增紀錄
+# 新增比賽
 # ======================
 
 st.header("新增比賽紀錄")
@@ -270,7 +266,10 @@ with c1:
 
     opponent=st.text_input("對戰球隊")
 
-    pitcher=st.selectbox("投手",["左投","右投"])
+    pitcher=st.selectbox(
+"投手",
+["左投","右投"]
+)
 
 with c2:
 
@@ -301,7 +300,6 @@ with c3:
     SH=st.number_input("SH",0)
 
     SB=st.number_input("SB",0)
-
 
 
 if st.button("新增紀錄"):
@@ -390,7 +388,6 @@ total["1B"]
     m4.metric("OPS",OPS)
 
 
-
     st.subheader("每場紀錄")
 
     show_df=player_df.sort_values("日期",ascending=False)
@@ -402,6 +399,7 @@ total["1B"]
         with colA:
 
             st.markdown(f"""
+
 ### 📅 {row['日期']} ｜ {row['球隊']} #{int(row['背號'])} {row['姓名']}
 
 vs {row['對戰球隊']} ｜ {row['投手']}
@@ -415,6 +413,7 @@ RBI {int(row['打點'])} ｜ R {int(row['得分'])}
 BB {int(row['BB'])} ｜ SF {int(row['SF'])} ｜ SH {int(row['SH'])} ｜ SB {int(row['SB'])}
 
 ---
+
 """)
 
         with colB:
@@ -430,7 +429,7 @@ BB {int(row['BB'])} ｜ SF {int(row['SF'])} ｜ SH {int(row['SH'])} ｜ SB {int(
 
 
 # ======================
-# Excel風格總統計（完整版）
+# Excel風格總統計
 # ======================
 
 st.divider()
@@ -442,87 +441,49 @@ if not df.empty:
     stat_df=df if name==ADMIN else df[df["姓名"]==name]
 
     summary=stat_df.groupby(
-        ["球隊","背號","姓名"],
-        as_index=False
-    ).sum(numeric_only=True)
 
-    # ===== AVG =====
+["球隊","背號","姓名"],
+
+as_index=False
+
+).sum(numeric_only=True)
 
     summary["AVG"]=summary.apply(
-        lambda r:round(
-            r["安打"]/r["打數"],3
-        ) if r["打數"]>0 else 0,
-        axis=1
-    )
 
-    # ===== OPS =====
+lambda r:round(
+r["安打"]/r["打數"],3)
+
+if r["打數"]>0 else 0,
+
+axis=1)
 
     summary["OPS"]=summary.apply(
 
-        lambda r:round(
+lambda r:round(
 
-            (
-            (r["安打"]+r["BB"])/
-            (r["打數"]+r["BB"]+r["SF"]
-            if (r["打數"]+r["BB"]+r["SF"])>0 else 1)
-            )
+((r["安打"]+r["BB"])/
+(r["打數"]+r["BB"]+r["SF"]
+if (r["打數"]+r["BB"]+r["SF"])>0 else 1))
 
-            +
++
 
-            (
-            (r["1B"]
-            +r["2B"]*2
-            +r["3B"]*3
-            +r["HR"]*4)
+((r["1B"]
++r["2B"]*2
++r["3B"]*3
++r["HR"]*4)
 
-            /(r["打數"]
-            if r["打數"]>0 else 1)
-            )
+/
+(r["打數"] if r["打數"]>0 else 1))
 
-        ,3)
+,3)
 
-    ,axis=1)
-
-    # ===== Excel完整欄位 =====
-
-    show_cols=[
-
-"球隊",
-"背號",
-"姓名",
-
-"打席",
-"打數",
-"得分",
-"打點",
-"安打",
-
-"1B",
-"2B",
-"3B",
-"HR",
-
-"BB",
-"SF",
-"SH",
-"SB",
-
-"AVG",
-"OPS"
-
-]
+,axis=1)
 
     st.dataframe(
 
-        summary[
-            show_cols
-        ].sort_values(
+summary.sort_values(
+"OPS",
+ascending=False
+),
 
-            "OPS",
-            ascending=False
-
-        ),
-
-        use_container_width=True
-
-    )
+use_container_width=True)
