@@ -430,7 +430,7 @@ BB {int(row['BB'])} ｜ SF {int(row['SF'])} ｜ SH {int(row['SH'])} ｜ SB {int(
 
 
 # ======================
-# Excel風格總統計（截圖神器）
+# Excel風格總統計（完整版）
 # ======================
 
 st.divider()
@@ -442,49 +442,87 @@ if not df.empty:
     stat_df=df if name==ADMIN else df[df["姓名"]==name]
 
     summary=stat_df.groupby(
-["球隊","背號","姓名"],
-as_index=False
-).sum(numeric_only=True)
+        ["球隊","背號","姓名"],
+        as_index=False
+    ).sum(numeric_only=True)
 
-    TB=(summary["1B"]
-+summary["2B"]*2
-+summary["3B"]*3
-+summary["HR"]*4)
+    # ===== AVG =====
 
     summary["AVG"]=summary.apply(
-lambda r:round(
-r["安打"]/r["打數"],3)
-if r["打數"]>0 else 0,
-axis=1)
+        lambda r:round(
+            r["安打"]/r["打數"],3
+        ) if r["打數"]>0 else 0,
+        axis=1
+    )
+
+    # ===== OPS =====
 
     summary["OPS"]=summary.apply(
 
-lambda r:round(
+        lambda r:round(
 
-((r["安打"]+r["BB"])/
-(r["打數"]+r["BB"]+r["SF"]
-if (r["打數"]+r["BB"]+r["SF"])>0 else 1))
+            (
+            (r["安打"]+r["BB"])/
+            (r["打數"]+r["BB"]+r["SF"]
+            if (r["打數"]+r["BB"]+r["SF"])>0 else 1)
+            )
 
-+
+            +
 
-((r["1B"]
-+r["2B"]*2
-+r["3B"]*3
-+r["HR"]*4)
+            (
+            (r["1B"]
+            +r["2B"]*2
+            +r["3B"]*3
+            +r["HR"]*4)
 
-/(r["打數"] if r["打數"]>0 else 1))
+            /(r["打數"]
+            if r["打數"]>0 else 1)
+            )
 
-,3)
+        ,3)
 
-,axis=1)
+    ,axis=1)
+
+    # ===== Excel完整欄位 =====
+
+    show_cols=[
+
+"球隊",
+"背號",
+"姓名",
+
+"打席",
+"打數",
+"得分",
+"打點",
+"安打",
+
+"1B",
+"2B",
+"3B",
+"HR",
+
+"BB",
+"SF",
+"SH",
+"SB",
+
+"AVG",
+"OPS"
+
+]
 
     st.dataframe(
 
-summary[
-["球隊","背號","姓名",
-"打席","打數","安打",
-"AVG","OPS"]
-].sort_values("OPS",ascending=False),
+        summary[
+            show_cols
+        ].sort_values(
 
-use_container_width=True
-)
+            "OPS",
+            ascending=False
+
+        ),
+
+        use_container_width=True
+
+    )
