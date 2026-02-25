@@ -11,8 +11,9 @@ st.title("⚾ 棒球打擊數據系統")
 DATA_FILE="data.csv"
 USER_FILE="users.csv"
 
+
 # ======================
-# users.csv 初始化
+# users 初始化
 # ======================
 
 if not os.path.exists(USER_FILE):
@@ -29,17 +30,13 @@ if not os.path.exists(USER_FILE):
 
 user_df=pd.read_csv(USER_FILE)
 
+
 # ======================
 # 登入 / 註冊
 # ======================
 
-mode=st.sidebar.radio(
+mode=st.sidebar.radio("帳號",["登入","註冊"])
 
-"帳號",
-
-["登入","註冊"]
-
-)
 
 # ========= 註冊 =========
 
@@ -83,6 +80,8 @@ if mode=="註冊":
 
     st.stop()
 
+
+
 # ========= 登入 =========
 
 st.sidebar.header("登入")
@@ -110,6 +109,8 @@ number_default=login.iloc[0]["背號"]
 
 ADMIN="洪仲平"
 
+
+
 # ======================
 # 欄位
 # ======================
@@ -128,6 +129,7 @@ columns=[
 
 ]
 
+
 # ======================
 # CSV
 # ======================
@@ -140,7 +142,6 @@ else:
 
     df=pd.DataFrame(columns=columns)
 
-# ⭐補齊舊資料欄位
 for c in columns:
 
     if c not in df.columns:
@@ -148,6 +149,8 @@ for c in columns:
         df[c]=0
 
 df=df.fillna(0)
+
+
 
 # ======================
 # ADMIN排行榜
@@ -158,52 +161,44 @@ if name==ADMIN and not df.empty:
     st.header("🏆 後台全部球員")
 
     summary=df.groupby(
+
 ["球隊","背號","姓名"],
+
 as_index=False
+
 ).sum(numeric_only=True)
 
-    TB=(
-summary["1B"]
-+summary["2B"]*2
-+summary["3B"]*3
-+summary["HR"]*4
-)
-
     summary["AVG"]=summary.apply(
+
 lambda r:round(r["安打"]/r["打數"],3)
+
 if r["打數"]>0 else 0,
+
 axis=1)
 
-    summary["OBP"]=summary.apply(
+    summary["OPS"]=summary.apply(
+
 lambda r:round(
-(r["安打"]+r["BB"])/
-(r["打數"]+r["BB"]+r["SF"])
-,3)
-if (r["打數"]+r["BB"]+r["SF"])>0 else 0,
-axis=1)
 
-    summary["SLG"]=summary.apply(
-lambda r:round(
-(r["1B"]+r["2B"]*2+r["3B"]*3+r["HR"]*4)
-/r["打數"]
-,3)
-if r["打數"]>0 else 0,
-axis=1)
+((r["安打"]+r["BB"])/(r["打數"]+r["BB"]+r["SF"] if (r["打數"]+r["BB"]+r["SF"])>0 else 1))
 
-    summary["OPS"]=(
-summary["OBP"]+
-summary["SLG"]
-).round(3)
++
+
+((r["1B"]+r["2B"]*2+r["3B"]*3+r["HR"]*4)/(r["打數"] if r["打數"]>0 else 1))
+
+,3)
+
+,axis=1)
 
     st.dataframe(
 
 summary[
-["球隊","背號","姓名",
-"打席","打數","安打",
-"AVG","OPS"]
+["球隊","背號","姓名","打席","打數","安打","AVG","OPS"]
 ].sort_values("OPS",ascending=False),
 
 use_container_width=True)
+
+
 
 # ======================
 # 新增紀錄
@@ -217,10 +212,7 @@ with c1:
 
     opponent=st.text_input("對戰球隊")
 
-    pitcher=st.selectbox(
-"投手",
-["左投","右投"]
-)
+    pitcher=st.selectbox("投手",["左投","右投"])
 
 with c2:
 
@@ -251,6 +243,8 @@ with c3:
     SH=st.number_input("SH",0)
 
     SB=st.number_input("SB",0)
+
+
 
 if st.button("新增紀錄"):
 
@@ -290,6 +284,8 @@ if st.button("新增紀錄"):
 
     st.success("新增成功")
 
+
+
 # ======================
 # 顯示紀錄
 # ======================
@@ -306,8 +302,7 @@ if not player_df.empty:
 total["1B"]+
 total["2B"]*2+
 total["3B"]*3+
-total["HR"]*4
-)
+total["HR"]*4)
 
     AB_total=total["打數"]
 
@@ -324,6 +319,8 @@ total["HR"]*4
 
     OPS=round(OBP+SLG,3)
 
+    st.subheader("累積統計")
+
     m1,m2,m3,m4=st.columns(4)
 
     m1.metric("打席",int(total["打席"]))
@@ -334,22 +331,19 @@ total["HR"]*4
 
     m4.metric("OPS",OPS)
 
+
+
     st.subheader("每場紀錄")
 
-    show_df=player_df.sort_values(
-"日期",
-ascending=False
-)
+    show_df=player_df.sort_values("日期",ascending=False)
 
     for idx,row in show_df.iterrows():
 
-        with st.container():
+        colA,colB=st.columns([9,1])
 
-            colA,colB=st.columns([9,1])
+        with colA:
 
-            with colA:
-
-                st.markdown(f"""
+            st.markdown(f"""
 ### 📅 {row['日期']} ｜ {row['球隊']} #{int(row['背號'])} {row['姓名']}
 
 vs {row['對戰球隊']} ｜ {row['投手']}
@@ -365,46 +359,52 @@ BB {int(row['BB'])} ｜ SF {int(row['SF'])} ｜ SH {int(row['SH'])} ｜ SB {int(
 ---
 """)
 
-            with colB:
+        with colB:
 
-                if st.button("❌",key=f"del{idx}"):
+            if st.button("❌",key=f"del{idx}"):
 
-                    df=df.drop(idx)
+                df=df.drop(idx)
 
-                    df.to_csv(DATA_FILE,index=False)
+                df.to_csv(DATA_FILE,index=False)
 
-                    st.rerun()
+                st.rerun()
+
+
 
 # ======================
-# Excel備份（穩定）
+# ⭐ 一鍵儲存Excel
 # ======================
 
-st.header("📁 Excel備份")
+st.divider()
 
-try:
+if not df.empty:
 
-    buffer=BytesIO()
+    st.subheader("💾 資料備份")
 
-    df.to_excel(
+    try:
+
+        buffer=BytesIO()
+
+        df.to_excel(
+            buffer,
+            index=False,
+            engine="openpyxl"
+        )
+
+        buffer.seek(0)
+
+        st.download_button(
+
+"⬇️ 儲存Excel備份",
+
 buffer,
-index=False,
-engine="openpyxl"
-)
 
-    buffer.seek(0)
-
-    st.download_button(
-
-"⬇️ 匯出Excel備份",
-
-buffer,
-
-file_name="baseball_backup.xlsx",
+file_name=f"baseball_backup_{datetime.now().strftime('%Y%m%d')}.xlsx",
 
 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 )
 
-except Exception as e:
+    except:
 
-    st.warning("Excel尚未安裝 openpyxl")
+        st.warning("requirements.txt 加入 openpyxl")
