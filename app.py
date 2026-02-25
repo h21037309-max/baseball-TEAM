@@ -6,19 +6,12 @@ import uuid
 
 st.set_page_config(layout="wide")
 
-st.title("⚾ 打擊數據系統 V9")
+st.title("⚾ 打擊數據系統 V9.5")
 
 DATA_FILE="data.csv"
 USER_FILE="users.csv"
 
-
-ADMINS=[
-
-"洪仲平",
-"楊振銓",
-"張管理員"
-
-]
+ADMINS=["洪仲平","楊振銓","張管理員"]
 
 
 # ======================
@@ -41,13 +34,11 @@ if not os.path.exists(USER_FILE):
 user_df=pd.read_csv(USER_FILE)
 
 
-
 # ======================
 # 登入 / 註冊
 # ======================
 
 mode=st.sidebar.radio("帳號",["登入","註冊"])
-
 
 if mode=="註冊":
 
@@ -67,7 +58,7 @@ if mode=="註冊":
 
         if acc in user_df["帳號"].values:
 
-            st.error("帳號已存在")
+            st.error("帳號存在")
 
         else:
 
@@ -81,14 +72,13 @@ if mode=="註冊":
 
 }])
 
-            user_df=pd.concat([user_df,new],ignore_index=True)
+            user_df=pd.concat([user_df,new])
 
             user_df.to_csv(USER_FILE,index=False)
 
             st.success("註冊成功")
 
     st.stop()
-
 
 
 username=st.sidebar.text_input("帳號")
@@ -107,14 +97,9 @@ if login.empty:
     st.stop()
 
 
-name=str(login.iloc[0]["姓名"]).strip()
+login_name=str(login.iloc[0]["姓名"]).strip()
 
-team_default=login.iloc[0]["球隊"]
-
-number_default=int(login.iloc[0]["背號"])
-
-IS_ADMIN=name in ADMINS
-
+IS_ADMIN=login_name in ADMINS
 
 
 # ======================
@@ -124,71 +109,73 @@ IS_ADMIN=name in ADMINS
 columns=[
 
 "紀錄ID","日期","球隊","背號","姓名",
-
 "對戰球隊","投手",
-
 "打席","打數","得分","打點","安打",
-
 "1B","2B","3B","HR",
-
 "BB","SF","SH","SB"
 
 ]
 
-
-if os.path.exists(DATA_FILE):
-
-    df=pd.read_csv(DATA_FILE)
-
-else:
-
-    df=pd.DataFrame(columns=columns)
-
-
-for c in columns:
-
-    if c not in df.columns:
-
-        df[c]=0
-
-
-df["姓名"]=df["姓名"].astype(str).str.strip()
+df=pd.read_csv(DATA_FILE) if os.path.exists(DATA_FILE) else pd.DataFrame(columns=columns)
 
 df=df.fillna(0)
 
+df["姓名"]=df["姓名"].astype(str).str.strip()
 
 
 # ======================
-# ADMIN 全隊排行榜
+# ADMIN 排行榜
 # ======================
 
 if IS_ADMIN and not df.empty:
 
-    st.header("🏆 全隊累積排行榜")
+    st.header("🏆 全隊排行榜")
 
     summary=df.groupby(
 ["球隊","背號","姓名"],
 as_index=False).sum(numeric_only=True)
 
-    TB=(
-summary["1B"]
-+summary["2B"]*2
-+summary["3B"]*3
-+summary["HR"]*4)
+    TB=summary["1B"]+summary["2B"]*2+summary["3B"]*3+summary["HR"]*4
 
-    summary["打擊率"]=(summary["安打"]/summary["打數"]).round(3).fillna(0)
+    summary["打擊率"]=(summary["安打"]/summary["打數"]).round(3)
 
     summary["上壘率"]=(
 (summary["安打"]+summary["BB"])/
 (summary["打數"]+summary["BB"]+summary["SF"])
-).round(3).fillna(0)
+).round(3)
 
-    summary["長打率"]=(TB/summary["打數"]).round(3).fillna(0)
+    summary["長打率"]=(TB/summary["打數"]).round(3)
 
     summary["OPS"]=(summary["上壘率"]+summary["長打率"]).round(3)
 
-    st.dataframe(summary,use_container_width=True)
+    st.dataframe(
+summary.sort_values("OPS",ascending=False),
+use_container_width=True)
 
+
+
+# ======================
+# ADMIN 選球員查看
+# ======================
+
+if IS_ADMIN:
+
+    select_player=st.selectbox(
+
+"查看球員",
+
+["全部球員"]+
+sorted(user_df["姓名"].tolist())
+
+)
+
+else:
+
+    select_player=login_name
+
+
+
+player_df=df if select_player=="全部球員" else df[df["姓名"]==select_player]
 
 
 # ======================
@@ -197,14 +184,20 @@ summary["1B"]
 
 st.header("新增比賽紀錄")
 
+record_name=login_name
+
+team_default=login.iloc[0]["球隊"]
+
+number_default=int(login.iloc[0]["背號"])
+
 
 if IS_ADMIN:
 
-    player_select=st.selectbox("選擇球員",user_df["姓名"])
+    player_select=st.selectbox("新增給球員",user_df["姓名"])
 
     info=user_df[user_df["姓名"]==player_select].iloc[0]
 
-    name=player_select
+    record_name=player_select
 
     team_default=info["球隊"]
 
@@ -214,13 +207,11 @@ if IS_ADMIN:
 
 c1,c2,c3=st.columns(3)
 
-
 with c1:
 
     opponent=st.text_input("對戰球隊")
 
     pitcher=st.selectbox("投手",["左投","右投"])
-
 
 with c2:
 
@@ -228,30 +219,13 @@ with c2:
 
     AB=st.number_input("打數",0)
 
-    R=st.number_input("得分",0)
-
-    RBI=st.number_input("打點",0)
-
     H=st.number_input("安打",0)
 
-
 with c3:
-
-    single=st.number_input("1B",0)
-
-    double=st.number_input("2B",0)
-
-    triple=st.number_input("3B",0)
 
     HR=st.number_input("HR",0)
 
     BB=st.number_input("BB",0)
-
-    SF=st.number_input("SF",0)
-
-    SH=st.number_input("SH",0)
-
-    SB=st.number_input("SB",0)
 
 
 
@@ -267,7 +241,7 @@ if st.button("新增紀錄"):
 
 "背號":number_default,
 
-"姓名":name,
+"姓名":record_name,
 
 "對戰球隊":opponent,
 
@@ -277,42 +251,27 @@ if st.button("新增紀錄"):
 
 "打數":AB,
 
-"得分":R,
-
-"打點":RBI,
-
 "安打":H,
 
-"1B":single,
-"2B":double,
-"3B":triple,
 "HR":HR,
 
-"BB":BB,
-"SF":SF,
-"SH":SH,
-"SB":SB
+"BB":BB
 
 }])
 
-    df=pd.concat([df,new],ignore_index=True)
+    df=pd.concat([df,new])
 
     df.to_csv(DATA_FILE,index=False)
-
-    st.success("新增成功")
 
     st.rerun()
 
 
 
 # ======================
-# ⭐ 個人累積統計（回來了）
+# 個人累積
 # ======================
 
 st.header("📊 個人累積統計")
-
-player_df=df if IS_ADMIN else df[df["姓名"]==name]
-
 
 if not player_df.empty:
 
@@ -322,25 +281,13 @@ if not player_df.empty:
 
     H=total["安打"]
 
-    BB=total["BB"]
-
-    SF=total["SF"]
-
-    TB=(
-total["1B"]
-+total["2B"]*2
-+total["3B"]*3
-+total["HR"]*4)
+    TB=total["HR"]*4
 
     AVG=round(H/AB,3) if AB>0 else 0
 
-    OBP=round((H+BB)/(AB+BB+SF),3) if (AB+BB+SF)>0 else 0
+    OPS=round(TB/AB,3) if AB>0 else 0
 
-    SLG=round(TB/AB,3) if AB>0 else 0
-
-    OPS=round(OBP+SLG,3)
-
-    c1,c2,c3,c4,c5,c6=st.columns(6)
+    c1,c2,c3=st.columns(3)
 
     c1.metric("打席",int(total["打席"]))
 
@@ -348,22 +295,13 @@ total["1B"]
 
     c3.metric("打擊率",AVG)
 
-    c4.metric("上壘率",OBP)
-
-    c5.metric("長打率",SLG)
-
-    c6.metric("OPS",OPS)
-
 
 
 # ======================
 # 單場紀錄
 # ======================
 
-st.header("📅 單場比賽紀錄")
-
-player_df=df if IS_ADMIN else df[df["姓名"]==name]
-
+st.header("📅 單場紀錄")
 
 for _,row in player_df.sort_values("日期",ascending=False).iterrows():
 
@@ -371,16 +309,11 @@ for _,row in player_df.sort_values("日期",ascending=False).iterrows():
 
     with colA:
 
-        st.markdown(f"""
+        st.markdown(
 
-### 📅 {row['日期']} ｜ {row['球隊']} #{int(row['背號'])} {row['姓名']}
+f"📅 {row['日期']} ｜ {row['姓名']} H {int(row['安打'])}"
 
-vs {row['對戰球隊']} ｜ {row['投手']}
-
-PA {int(row['打席'])} ｜ AB {int(row['打數'])} ｜ H {int(row['安打'])}
-
----
-""")
+)
 
     with colB:
 
