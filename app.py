@@ -12,7 +12,7 @@ DATA_FILE="data.csv"
 USER_FILE="users.csv"
 
 # ======================
-# 建立users.csv
+# users.csv 初始化
 # ======================
 
 if not os.path.exists(USER_FILE):
@@ -79,7 +79,7 @@ if mode=="註冊":
 
             user_df.to_csv(USER_FILE,index=False)
 
-            st.success("註冊成功")
+            st.success("✅ 註冊成功")
 
     st.stop()
 
@@ -103,7 +103,9 @@ if login.empty:
     st.stop()
 
 name=login.iloc[0]["姓名"]
+
 team_default=login.iloc[0]["球隊"]
+
 number_default=login.iloc[0]["背號"]
 
 ADMIN="洪仲平"
@@ -138,6 +140,7 @@ else:
 
     df=pd.DataFrame(columns=columns)
 
+# ⭐補齊舊資料欄位
 for c in columns:
 
     if c not in df.columns:
@@ -187,7 +190,10 @@ lambda r:round(
 if r["打數"]>0 else 0,
 axis=1)
 
-    summary["OPS"]=(summary["OBP"]+summary["SLG"]).round(3)
+    summary["OPS"]=(
+summary["OBP"]+
+summary["SLG"]
+).round(3)
 
     st.dataframe(
 
@@ -200,7 +206,7 @@ summary[
 use_container_width=True)
 
 # ======================
-# 新增比賽
+# 新增紀錄
 # ======================
 
 st.header("新增比賽紀錄")
@@ -211,7 +217,10 @@ with c1:
 
     opponent=st.text_input("對戰球隊")
 
-    pitcher=st.selectbox("投手",["左投","右投"])
+    pitcher=st.selectbox(
+"投手",
+["左投","右投"]
+)
 
 with c2:
 
@@ -282,7 +291,7 @@ if st.button("新增紀錄"):
     st.success("新增成功")
 
 # ======================
-# 顯示
+# 顯示紀錄
 # ======================
 
 st.header("比賽紀錄")
@@ -293,10 +302,12 @@ if not player_df.empty:
 
     total=player_df.sum(numeric_only=True)
 
-    TB=(total["1B"]+
-    total["2B"]*2+
-    total["3B"]*3+
-    total["HR"]*4)
+    TB=(
+total["1B"]+
+total["2B"]*2+
+total["3B"]*3+
+total["HR"]*4
+)
 
     AB_total=total["打數"]
 
@@ -323,15 +334,22 @@ if not player_df.empty:
 
     m4.metric("OPS",OPS)
 
-    show_df=player_df.sort_values("日期",ascending=False)
+    st.subheader("每場紀錄")
+
+    show_df=player_df.sort_values(
+"日期",
+ascending=False
+)
 
     for idx,row in show_df.iterrows():
 
-        colA,colB=st.columns([9,1])
+        with st.container():
 
-        with colA:
+            colA,colB=st.columns([9,1])
 
-            st.markdown(f"""
+            with colA:
+
+                st.markdown(f"""
 ### 📅 {row['日期']} ｜ {row['球隊']} #{int(row['背號'])} {row['姓名']}
 
 vs {row['對戰球隊']} ｜ {row['投手']}
@@ -347,29 +365,35 @@ BB {int(row['BB'])} ｜ SF {int(row['SF'])} ｜ SH {int(row['SH'])} ｜ SB {int(
 ---
 """)
 
-        with colB:
+            with colB:
 
-            if st.button("❌",key=f"del{idx}"):
+                if st.button("❌",key=f"del{idx}"):
 
-                df=df.drop(idx)
+                    df=df.drop(idx)
 
-                df.to_csv(DATA_FILE,index=False)
+                    df.to_csv(DATA_FILE,index=False)
 
-                st.rerun()
+                    st.rerun()
 
 # ======================
-# Excel 備份
+# Excel備份（穩定）
 # ======================
 
 st.header("📁 Excel備份")
 
-buffer=BytesIO()
+try:
 
-df.to_excel(buffer,index=False,engine="openpyxl")
+    buffer=BytesIO()
 
-buffer.seek(0)
+    df.to_excel(
+buffer,
+index=False,
+engine="openpyxl"
+)
 
-st.download_button(
+    buffer.seek(0)
+
+    st.download_button(
 
 "⬇️ 匯出Excel備份",
 
@@ -380,3 +404,7 @@ file_name="baseball_backup.xlsx",
 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 )
+
+except Exception as e:
+
+    st.warning("Excel尚未安裝 openpyxl")
