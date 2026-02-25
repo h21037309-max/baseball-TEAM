@@ -6,7 +6,7 @@ import uuid
 
 st.set_page_config(layout="wide")
 
-st.title("⚾ 打擊數據")
+st.title("⚾ 打擊數據系統 V7")
 
 DATA_FILE="data.csv"
 USER_FILE="users.csv"
@@ -40,7 +40,9 @@ if not os.path.exists(USER_FILE):
 }]).to_csv(USER_FILE,index=False)
 
 
+
 user_df=pd.read_csv(USER_FILE)
+
 
 
 # ======================
@@ -48,6 +50,7 @@ user_df=pd.read_csv(USER_FILE)
 # ======================
 
 mode=st.sidebar.radio("帳號",["登入","註冊"])
+
 
 
 # ========= 註冊 =========
@@ -116,6 +119,7 @@ if login.empty:
     st.stop()
 
 
+
 name=str(login.iloc[0]["姓名"]).strip()
 
 team_default=login.iloc[0]["球隊"]
@@ -145,6 +149,7 @@ columns=[
 
 ]
 
+
 if os.path.exists(DATA_FILE):
 
     df=pd.read_csv(DATA_FILE)
@@ -152,6 +157,7 @@ if os.path.exists(DATA_FILE):
 else:
 
     df=pd.DataFrame(columns=columns)
+
 
 
 for c in columns:
@@ -168,7 +174,7 @@ df=df.fillna(0)
 
 
 # ======================
-# ADMIN全部球員（完整版）
+# ADMIN 全部球員
 # ======================
 
 if IS_ADMIN and not df.empty:
@@ -187,19 +193,21 @@ as_index=False).sum(numeric_only=True)
     +summary["HR"]*4
     )
 
-    summary["AVG"]=(
+    summary["打擊率"]=(
     summary["安打"]/summary["打數"]
     ).round(3).fillna(0)
 
-    summary["OBP"]=(
+
+    summary["上壘率"]=(
     (summary["安打"]+summary["BB"])/
     (summary["打數"]+summary["BB"]+summary["SF"])
     ).round(3).fillna(0)
 
-    summary["SLG"]=(TB/summary["打數"]).round(3).fillna(0)
+
+    summary["長打率"]=(TB/summary["打數"]).round(3).fillna(0)
 
     summary["OPS"]=(
-    summary["OBP"]+summary["SLG"]
+    summary["上壘率"]+summary["長打率"]
     ).round(3)
 
     st.dataframe(summary,use_container_width=True)
@@ -254,34 +262,46 @@ with c3:
 
 if st.button("新增紀錄"):
 
-    today=datetime.now().strftime("%Y-%m-%d")
-
     new=pd.DataFrame([{
 
 "紀錄ID":str(uuid.uuid4()),
 
-"日期":today,
+"日期":datetime.now().strftime("%Y-%m-%d"),
+
 "球隊":team_default,
+
 "背號":number_default,
+
 "姓名":name,
 
 "對戰球隊":opponent,
+
 "投手":pitcher,
 
 "打席":PA,
+
 "打數":AB,
+
 "得分":R,
+
 "打點":RBI,
+
 "安打":H,
 
 "1B":single,
+
 "2B":double,
+
 "3B":triple,
+
 "HR":HR,
 
 "BB":BB,
+
 "SF":SF,
+
 "SH":SH,
+
 "SB":SB
 
 }])
@@ -292,56 +312,34 @@ if st.button("新增紀錄"):
 
     st.success("新增成功")
 
+    st.rerun()
+
 
 
 # ======================
-# ⭐ 累積統計（超穩定）
+# 累積統計
 # ======================
 
-st.header("📊 累積統計")
-
-# ⭐姓名防呆
-df["姓名"]=df["姓名"].astype(str).str.strip()
+st.header("📊 個人累積統計")
 
 player_df=df if IS_ADMIN else df[df["姓名"]==name]
 
 
 if player_df.empty:
 
-    st.info("目前沒有累積資料")
+    st.info("目前沒有資料")
 
 else:
 
-    # ⭐只抓數字欄位（完全防炸）
-
-    numeric_cols=[
-
-    "打席","打數","得分","打點","安打",
-
-    "1B","2B","3B","HR",
-
-    "BB","SF","SH","SB"
-
-    ]
-
-    # ⭐缺欄位自動補
-
-    for col in numeric_cols:
-
-        if col not in player_df.columns:
-
-            player_df[col]=0
-
-
-    total=player_df[numeric_cols].sum()
-
+    total=player_df.sum(numeric_only=True)
 
     AB=total["打數"]
+
     H=total["安打"]
 
     BB=total["BB"]
-    SF=total["SF"]
 
+    SF=total["SF"]
 
     TB=(
 
@@ -352,41 +350,34 @@ else:
 
     )
 
-
     AVG=round(H/AB,3) if AB>0 else 0
 
-
     OBP=round(
-
     (H+BB)/(AB+BB+SF)
-
     ,3) if (AB+BB+SF)>0 else 0
 
-
-    SLG=round(
-
-    TB/AB
-
-    ,3) if AB>0 else 0
-
+    SLG=round(TB/AB,3) if AB>0 else 0
 
     OPS=round(OBP+SLG,3)
 
+    c1,c2,c3,c4,c5,c6=st.columns(6)
 
-    m1,m2,m3,m4=st.columns(4)
+    c1.metric("打席",int(total["打席"]))
 
-    m1.metric("打席",int(total["打席"]))
+    c2.metric("安打",int(H))
 
-    m2.metric("安打",int(H))
+    c3.metric("打擊率",AVG)
 
-    m3.metric("AVG",AVG)
+    c4.metric("上壘率",OBP)
 
-    m4.metric("OPS",OPS)
+    c5.metric("長打率",SLG)
+
+    c6.metric("OPS",OPS)
 
 
 
 # ======================
-# ⭐ 單場紀錄（一場一筆）
+# 單場紀錄
 # ======================
 
 st.header("📅 單場比賽紀錄")
@@ -397,7 +388,7 @@ if player_df.empty:
 
 else:
 
-    for idx,row in player_df.sort_values("日期",ascending=False).iterrows():
+    for _,row in player_df.sort_values("日期",ascending=False).iterrows():
 
         colA,colB=st.columns([9,1])
 
@@ -439,7 +430,7 @@ BB {int(row['BB'])} ｜ SF {int(row['SF'])} ｜ SH {int(row['SH'])} ｜ SB {int(
 
 
 # ======================
-# ⭐ 帳號管理（移到底）
+# 帳號管理
 # ======================
 
 if IS_ADMIN:
@@ -478,16 +469,21 @@ if IS_ADMIN:
 
 
 # ======================
-# Excel統計
+# 總數據統計
 # ======================
 
 st.divider()
 
 st.header("📊 總數據統計")
 
-summary=player_df.groupby(
+stat_df=pd.read_csv(DATA_FILE)
+
+stat_df["姓名"]=stat_df["姓名"].astype(str).str.strip()
+
+stat_df=stat_df if IS_ADMIN else stat_df[stat_df["姓名"]==name]
+
+summary=stat_df.groupby(
 ["球隊","背號","姓名"],
 as_index=False).sum(numeric_only=True)
 
 st.dataframe(summary,use_container_width=True)
-
