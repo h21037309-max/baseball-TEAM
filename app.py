@@ -6,7 +6,7 @@ import uuid
 
 st.set_page_config(layout="wide")
 
-st.title("⚾ 打擊數據系統 V7")
+st.title("⚾ 打擊數據")
 
 DATA_FILE="data.csv"
 USER_FILE="users.csv"
@@ -295,40 +295,92 @@ if st.button("新增紀錄"):
 
 
 # ======================
-# 累積統計
+# ⭐ 累積統計（超穩定）
 # ======================
 
 st.header("📊 累積統計")
 
+# ⭐姓名防呆
+df["姓名"]=df["姓名"].astype(str).str.strip()
+
 player_df=df if IS_ADMIN else df[df["姓名"]==name]
 
-if not player_df.empty:
 
-    total=player_df.sum(numeric_only=True)
+if player_df.empty:
+
+    st.info("目前沒有累積資料")
+
+else:
+
+    # ⭐只抓數字欄位（完全防炸）
+
+    numeric_cols=[
+
+    "打席","打數","得分","打點","安打",
+
+    "1B","2B","3B","HR",
+
+    "BB","SF","SH","SB"
+
+    ]
+
+    # ⭐缺欄位自動補
+
+    for col in numeric_cols:
+
+        if col not in player_df.columns:
+
+            player_df[col]=0
+
+
+    total=player_df[numeric_cols].sum()
+
+
+    AB=total["打數"]
+    H=total["安打"]
+
+    BB=total["BB"]
+    SF=total["SF"]
+
 
     TB=(
+
     total["1B"]
     +total["2B"]*2
     +total["3B"]*3
     +total["HR"]*4
+
     )
 
-    AVG=round(total["安打"]/total["打數"],3) if total["打數"]>0 else 0
+
+    AVG=round(H/AB,3) if AB>0 else 0
+
 
     OBP=round(
-    (total["安打"]+total["BB"])/
-    (total["打數"]+total["BB"]+total["SF"]),
-    3) if (total["打數"]+total["BB"]+total["SF"])>0 else 0
 
-    SLG=round(TB/total["打數"],3) if total["打數"]>0 else 0
+    (H+BB)/(AB+BB+SF)
+
+    ,3) if (AB+BB+SF)>0 else 0
+
+
+    SLG=round(
+
+    TB/AB
+
+    ,3) if AB>0 else 0
+
 
     OPS=round(OBP+SLG,3)
+
 
     m1,m2,m3,m4=st.columns(4)
 
     m1.metric("打席",int(total["打席"]))
-    m2.metric("安打",int(total["安打"]))
+
+    m2.metric("安打",int(H))
+
     m3.metric("AVG",AVG)
+
     m4.metric("OPS",OPS)
 
 
@@ -438,3 +490,4 @@ summary=player_df.groupby(
 as_index=False).sum(numeric_only=True)
 
 st.dataframe(summary,use_container_width=True)
+
