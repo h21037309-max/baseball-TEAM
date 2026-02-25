@@ -6,7 +6,7 @@ import uuid
 
 st.set_page_config(layout="wide")
 
-st.title("⚾ 打擊數據系統 V10")
+st.title("⚾ 打擊數據")
 
 DATA_FILE="data.csv"
 USER_FILE="users.csv"
@@ -396,3 +396,4 @@ as_index=False).sum(numeric_only=True)
     summary["OPS"]=(summary["OBP"]+summary["SLG"]).round(3)
 
     st.dataframe(summary,use_container_width=True)
+
