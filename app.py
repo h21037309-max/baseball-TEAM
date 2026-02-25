@@ -6,10 +6,12 @@ import uuid
 
 st.set_page_config(layout="wide")
 
-st.title("⚾ 打擊數據系統 V8")
+st.title("⚾ 打擊數據系統 V9")
+
 
 DATA_FILE="data.csv"
 USER_FILE="users.csv"
+
 
 
 ADMINS=[
@@ -19,6 +21,7 @@ ADMINS=[
 "張管理員"
 
 ]
+
 
 
 # ========= users =========
@@ -40,9 +43,10 @@ user_df=pd.read_csv(USER_FILE)
 
 
 
-# ========= 登入 / 註冊 =========
+# ========= 登入註冊 =========
 
 mode=st.sidebar.radio("帳號",["登入","註冊"])
+
 
 
 if mode=="註冊":
@@ -63,7 +67,7 @@ if mode=="註冊":
 
         if acc in user_df["帳號"].values:
 
-            st.error("帳號已存在")
+            st.error("帳號存在")
 
         else:
 
@@ -89,22 +93,23 @@ if mode=="註冊":
 
 # ========= 登入 =========
 
-st.sidebar.header("登入")
-
 username=st.sidebar.text_input("帳號")
 
 password=st.sidebar.text_input("密碼",type="password")
+
 
 login=user_df[
 (user_df["帳號"]==username)&
 (user_df["密碼"]==password)
 ]
 
+
 if login.empty:
 
     st.warning("請登入")
 
     st.stop()
+
 
 
 name=str(login.iloc[0]["姓名"]).strip()
@@ -131,6 +136,7 @@ columns=[
 "BB","SF","SH","SB"
 
 ]
+
 
 if os.path.exists(DATA_FILE):
 
@@ -254,9 +260,10 @@ if st.button("新增紀錄"):
 
 
 
-# ========= 累積統計 =========
+# ========= ⭐個人中文數據卡=========
 
 st.header("📊 個人打擊數據")
+
 
 player_df=df if IS_ADMIN else df[df["姓名"]==name]
 
@@ -275,12 +282,12 @@ if not player_df.empty:
 
     TB=(
 
-    total["1B"]
-    +total["2B"]*2
-    +total["3B"]*3
-    +total["HR"]*4
+total["1B"]
++total["2B"]*2
++total["3B"]*3
++total["HR"]*4
 
-    )
+)
 
     AVG=round(H/AB,3) if AB>0 else 0
 
@@ -290,7 +297,8 @@ if not player_df.empty:
 
     OPS=round(OBP+SLG,3)
 
-    c1,c2,c3,c4,c5,c6,c7=st.columns(7)
+
+    c1,c2,c3,c4,c5,c6,c7,c8,c9=st.columns(9)
 
     c1.metric("打席",int(total["打席"]))
 
@@ -298,13 +306,17 @@ if not player_df.empty:
 
     c3.metric("安打",int(H))
 
-    c4.metric("打擊率AVG",AVG)
+    c4.metric("得分",int(total["得分"]))
 
-    c5.metric("上壘率OBP",OBP)
+    c5.metric("打點",int(total["打點"]))
 
-    c6.metric("長打率SLG",SLG)
+    c6.metric("打擊率",AVG)
 
-    c7.metric("OPS",OPS)
+    c7.metric("上壘率",OBP)
+
+    c8.metric("長打率",SLG)
+
+    c9.metric("OPS",OPS)
 
 
 
@@ -351,19 +363,22 @@ BB {int(row['BB'])} ｜ SB {int(row['SB'])}
 
 
 
-# ========= ⭐總數據統計（完整版）=========
+# ========= ⭐總數據即時=========
 
 st.divider()
 
 st.header("📊 總數據統計")
 
-stat_df=pd.read_csv(DATA_FILE)
 
-stat_df["姓名"]=stat_df["姓名"].astype(str).str.strip()
+# ⭐重新讀CSV（關鍵）
+live_df=pd.read_csv(DATA_FILE)
 
-stat_df=stat_df if IS_ADMIN else stat_df[stat_df["姓名"]==name]
+live_df["姓名"]=live_df["姓名"].astype(str).str.strip()
 
-summary=stat_df.groupby(
+live_df=live_df if IS_ADMIN else live_df[live_df["姓名"]==name]
+
+
+summary=live_df.groupby(
 ["球隊","背號","姓名"],
 as_index=False).sum(numeric_only=True)
 
@@ -376,6 +391,7 @@ summary["1B"]
 +summary["HR"]*4
 
 )
+
 
 summary["AVG"]=(summary["安打"]/summary["打數"]).round(3).fillna(0)
 
