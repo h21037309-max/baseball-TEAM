@@ -34,7 +34,7 @@ if not os.path.exists(USER_FILE):
 "球隊":"ADMIN",
 "背號":0,
 
-"帳號":"admin",
+"帳號":"admin1",
 "密碼":"admin1234",
 "姓名":"楊振銓",
 "球隊":"ADMIN",
